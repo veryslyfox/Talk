@@ -1,14 +1,14 @@
 using System.Collections;
 
-class MathCollection : IEnumerable<int>
+class MathCollection : IEnumerable<float>
 {
-    public MathCollection(int[] values)
+    public MathCollection(float[] values)
     {
         Values = values;
     }
-    public MathCollection(Func<int, int> func, int length)//?
+    public MathCollection(Func<int, float> func, int length)//?
     {
-        Values = new int[length];
+        Values = new float[length];
         for (int i = 0; i < length - 1; i++)
         {
             Values[i] = func(i);
@@ -18,18 +18,20 @@ class MathCollection : IEnumerable<int>
     {
         if (Values.Length == 1)
         {
-            return this;
+            var a = this;
+            a.Values[0] = Math.Abs(a.Values[0]);
+            return a;
         }
         if (Values.Length == 0)
         {
-            return new MathCollection(new int[]{0});
+            return new MathCollection(new float[]{0});
         }
         return new(n => Math.Abs(Values[n + 1] - Values[n]), Values.Length - 1);
     }
 
-    public IEnumerator<int> GetEnumerator()
+    public IEnumerator<float> GetEnumerator()
     {
-        return ((IEnumerable<int>)Values).GetEnumerator();
+        return ((IEnumerable<float>)Values).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -37,15 +39,15 @@ class MathCollection : IEnumerable<int>
         return Values.GetEnumerator();
     }
 
-    static public implicit operator int[](MathCollection value)
+    static public implicit operator float[](MathCollection value)
     {
         return value.Values;
     }
-    static public implicit operator MathCollection(int[] value)
+    static public implicit operator MathCollection(float[] value)
     {
         return new(value);
     }
-    public int[] Values { get; }
+    public float[] Values { get; }
 }
 static class MathEnumerable
 {
