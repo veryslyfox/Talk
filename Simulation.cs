@@ -2,7 +2,7 @@ static partial class Program
 {
     const long ProjectileDelay = 500;
     const long CannonDelay = 2500;
-    public static Cell[,] _field = new Cell[20, 20];
+    public static Cell[,] _field = new Cell[22, 22];
     public static int _fx = _field.GetLength(0) - 1;
     public static int _fy = _field.GetLength(1) - 1;
     public static int _playerX, _playerY;
@@ -17,36 +17,6 @@ static partial class Program
     private static Cell _moveCell = Cell.Empty;
     private static bool _active = true;
     private static Random _rng = new Random();
-    static void Tick()
-    {
-    A:
-        Array.Clear(_field);
-        _isWin = false;
-        _isGameOver = false;
-        Read("Lvl");
-        _moveProjectilesTime = _time;
-        _temp = 0.01;
-        _rounds = 0;
-        Console.CursorVisible = false;
-        DrawField();
-        while (!(_isWin || _isGameOver))
-        {
-            ProcessInput();
-            ProcessLogic();
-            DrawField();
-            _rounds++;
-        }
-        if (_isWin)
-        {
-            Console.WriteLine("Game win!");
-        }
-        else
-        {
-            Console.WriteLine("Game over");
-        }
-        Console.ReadKey();
-        goto A;
-    }
     private static void ProcessLogic()
     {
         if (_rounds == 80)
@@ -56,33 +26,21 @@ static partial class Program
         OffsetPlayer(0, 0);
         _field[_playerX, _playerY] = Cell.Player;
     }
-    private static void ProcessInput()
+    private static void ProcessInput(int direct)
     {
-        if (!Console.KeyAvailable)
+        switch (direct)
         {
-            return;
-        }
-        var key = Console.ReadKey(true);
-        switch (key.Key)
-        {
-            case ConsoleKey.W:
-            case ConsoleKey.UpArrow:
+            case 0:
                 OffsetPlayer(0, -1);
                 break;
-            case ConsoleKey.S:
-            case ConsoleKey.DownArrow:
+            case 1:
                 OffsetPlayer(0, 1);
                 break;
-            case ConsoleKey.A:
-            case ConsoleKey.LeftArrow:
+            case 2:
                 OffsetPlayer(-1, 0);
                 break;
-            case ConsoleKey.D:
-            case ConsoleKey.RightArrow:
+            case 3:
                 OffsetPlayer(1, 0);
-                break;
-            case ConsoleKey.R:
-                ExecutionInput();
                 break;
         }
     }
@@ -166,17 +124,6 @@ static partial class Program
         }
         Console.WriteLine(_error);
     }
-    // static Direct GetDirect(this Cell cell)
-    // {
-    //     return cell switch
-    //     {
-    //         Cell.ProjectileD => Direct.Down,
-    //         Cell.ProjectileL => Direct.Left,
-    //         Cell.ProjectileR => Direct.Right,
-    //         Cell.ProjectileU => Direct.Up,
-    //         _ => Direct.Never,
-    //     };
-    // }
     static void Init(string name)
     {
         var file = File.OpenText(name);
@@ -276,8 +223,24 @@ static partial class Program
             }
         }
     }
-    static bool IsGoodSystem(NeuralNetwork network, int i)
+    static bool IsGoodSystem(NeuralNetwork network, int value)
     {
-        ret
+        for (int i = 0; i < 200; i++)
+        {
+            GetResolution(network);
+            if (_isWin)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    static int GetResolution(NeuralNetwork network)
+    {
+        var collection = new float[] { ((float)_field[_playerX, _playerY - 1]), ((float)_field[_playerX + 1, _playerY]), ((float)_field[_playerX, _playerY + 1]), ((float)_field[_playerX - 1, _playerY]) };
+        collection = network.Use(collection);
+        var result = Array.IndexOf(collection, collection.Max());
+        ProcessInput(result);
+        return result;
     }
 }

@@ -1,4 +1,5 @@
 using static System.MathF;
+using static Error;
 enum ActivateFunction
 {
     Exp,
@@ -9,6 +10,22 @@ enum ActivateFunction
 }
 class NeuralNetwork
 {
+    public float[] Use(float[] data)
+    {
+        this[0].Neurons = IsNull(data.Select(value => new Neuron(value)).ToList(), "null input");
+        for (NeuronLayer i = this[0]; i.Next != null; i = i.Next)
+        {
+            for (int j = 0; j < i.Neurons.Count; j++)
+            {
+                i.Neurons[j].WriteValue();
+            }
+            if (i.Next == null)
+            {
+                return IsNull(i.Neurons.Select(n => n.Value), "null output", new float[] { }).ToArray();
+            }
+        }
+        return new float[] { 0 };
+    }
     public NeuralNetwork(NeuronLayer[] neuronLayers, ActivateFunction function)
     {
         NeuronLayers = neuronLayers;
@@ -22,6 +39,7 @@ class NeuralNetwork
     public NeuronLayer this[int index]
     {
         get => NeuronLayers![index];
+        set => NeuronLayers![index] = value;
     }
     public NeuronLayer[]? NeuronLayers { get; set; }
     public ActivateFunction Function { get; }
@@ -71,9 +89,29 @@ class Neuron
         layer.Neurons.Add(this);
         WriteValue();
     }
+#pragma warning disable //
+    public Neuron(float value)
+#pragma warning restore
+    {
+        Value = value;
+    }
     public void WriteValue()
     {
-        Value = Activate(Weights.Zip(Layer.Neurons, (float i, Neuron neuron) => i * neuron.Value).Sum(), ActivateFunction);
+
+        if (Layer.Neurons == null)
+        {
+            Error.Add("neurons not init");
+            return;
+        }
+
+        var collection = Weights.Zip(IsNull(Layer.Neurons, "neurons not init"), (float i, Neuron neuron) => i * neuron.Value);
+        if (collection == null || collection.Count() == 0)
+        {
+            Error.Add("neuron not get data");
+            Value = 0;
+            return;
+        }
+        Value = Activate(collection.Sum(), ActivateFunction);
     }
     public float Value { get; set; }
     public float[] Weights { get; set; }
@@ -88,7 +126,7 @@ class NeuronLayer
         Next = next;
     }
 
-    public List<Neuron> Neurons { get; }
+    public List<Neuron> Neurons { get; set; }
     public NeuronLayer? Next { get; set; }
     public NeuronLayer? Previous { get; set; }
 }
@@ -162,20 +200,21 @@ class EvolutionProcess
             Evolution.GetNeuralNetwork(Network, Disperse, Networks[i]);
         }
     }
-    public void Selection(int stop, int length)
+    public void Selection(int length)
     {
         Random random = new Random();
         for (int i = 0; i < length; i++)
         {
-            var j = 0;
-            while (Networks.Count > stop)
+            Networks.RemoveAll(n => !IsNext(n, 1));
+            if (Networks.Count == 0)
             {
-                Networks.RemoveAll(n => IsNext(n, j));
-                j++;
+                Error.Add("Empty selection space");
+                Networks = SaveCopy;
+                return;
             }
             Network = Networks[random.Next(Count)];
-            Networks = SaveCopy;
         }
+        Networks = SaveCopy;
     }
     public NeuralNetwork Network { get; private set; }
     public List<NeuralNetwork> Networks { get; private set; }
